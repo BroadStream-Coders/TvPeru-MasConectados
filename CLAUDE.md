@@ -44,6 +44,7 @@ cualquier duda lee `node_modules/next/dist/docs/` antes de escribir código.
 
 - `sessionData.json`: `{ cells: [{ cardA, cardB }], answer: string[] }`, con `card = { type: 0|1|2, text, pictureFile }` (0 texto, 1 imagen, 2 ambos).
 - `images/P{n}_{A|B}.ext`, referenciadas por `pictureFile`.
+- Hoy el colector pide **una imagen por par** y la escribe en `cardA` y `cardB` (tipo 1, mismo archivo duplicado). El formato no cambia a propósito: si vuelven los textos, solo cambia la UI del colector. El juego sigue leyendo texto, imagen o ambos.
 - `answer`: permutación de los ids `"{par0}_{A|B}"` (par 0-based).
 - Al cargar se acepta `sessionData.json` o `data.json`; solo 10 pares.
 - Carta: proporción 315x196 (el área enmascarada del frente en Unity) (constante única). El recorte es opcional: la imagen se guarda tal cual (reducida si pasa de 630 px de ancho) y el botón de recortar se resalta si no calza con la carta.

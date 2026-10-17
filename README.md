@@ -5,10 +5,10 @@ juego: **De Par en Par**, un juego de memoria de 10 pares (20 cartas).
 
 ## Cómo se usa
 
-1. **Colector** (`/collector`): la producción llena los pares del día (imagen,
-   texto o ambos), ordena el tablero y descarga `DeParEnPar.zip`.
-2. **Juego** (`/game`, en desarrollo): carga ese ZIP y se juega en pantalla
-   durante el programa.
+1. **Colector** (`/collector`): la producción sube una imagen por par (se usa
+   en las dos cartas), ordena el tablero y descarga `DeParEnPar.zip`.
+2. **Juego** (`/game`): carga ese ZIP y se juega en pantalla completa durante
+   el programa.
 
 No hay cuentas, base de datos ni servidor propio: todo corre en el navegador y
 los datos del día viajan en el ZIP.

@@ -48,18 +48,17 @@ export const MODE_TYPE: Record<CardMode, number> = {
   both: 2,
 };
 
-export const TYPE_MODE: Record<number, CardMode> = {
-  0: "text",
-  1: "image",
-  2: "both",
-};
-
 export function createEmptyCard(): CardContent {
   return { mode: "image", text: "", image: emptyImageSlot() };
 }
 
 export function createEmptyPair(): PairData {
   return { cardA: createEmptyCard(), cardB: createEmptyCard() };
+}
+
+export function pairWithImage(image: ImageSlot): PairData {
+  const card: CardContent = { mode: "image", text: "", image };
+  return { cardA: card, cardB: { ...card } };
 }
 
 export function cardKey(side: CardSide): keyof PairData {
@@ -115,16 +114,9 @@ export function isSessionData(value: unknown): value is SessionData {
 export function validate(pairsData: PairsData): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
 
-  for (let i = 0; i < PAIRS; i++) {
-    for (const side of ["A", "B"] as const) {
-      const card = pairsData[i + 1]?.[cardKey(side)] ?? createEmptyCard();
-      const label = `Par ${i + 1} · Carta ${side}`;
-      if (card.mode !== "image" && !card.text.trim()) {
-        issues.push({ path: `${label} · Texto`, message: "Falta el texto." });
-      }
-      if (card.mode !== "text" && !hasImage(card.image)) {
-        issues.push({ path: `${label} · Imagen`, message: "Falta la imagen." });
-      }
+  for (let i = 1; i <= PAIRS; i++) {
+    if (!hasImage(pairsData[i]?.cardA.image)) {
+      issues.push({ path: `Par ${i}`, message: "Falta la imagen." });
     }
   }
 

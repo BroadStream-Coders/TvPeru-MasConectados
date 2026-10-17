@@ -3,30 +3,15 @@
 import { Copy } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { ImagePicker } from "./ImagePicker";
 import {
   CARD_OUTPUT_WIDTH,
   CARD_RATIO,
   PAIRS,
-  cardAspect,
-  cardKey,
-  createEmptyCard,
-  createEmptyPair,
-  type CardContent,
-  type CardMode,
-  type CardSide,
+  pairWithImage,
   type PairsData,
 } from "./schema";
-import { clearSlotImage, setSlotImage } from "./slot";
+import { clearSlotImage, emptyImageSlot, setSlotImage, type ImageSlot } from "./slot";
 
 interface Tab1Props {
   pairsData: PairsData;
@@ -36,127 +21,55 @@ interface Tab1Props {
 
 const pairNumbers = Array.from({ length: PAIRS }, (_, i) => i + 1);
 
-const MODES: Record<CardMode, string> = {
-  image: "Solo imagen",
-  text: "Solo texto",
-  both: "Ambos",
-};
-
 export function Tab1({ pairsData, setPairsData, onError }: Tab1Props) {
-  const update = (
-    pairNum: number,
-    side: CardSide,
-    change: (card: CardContent) => Partial<CardContent>,
-  ) => {
-    setPairsData((prev) => {
-      const pair = prev[pairNum] ?? createEmptyPair();
-      const key = cardKey(side);
-      return {
-        ...prev,
-        [pairNum]: { ...pair, [key]: { ...pair[key], ...change(pair[key]) } },
-      };
-    });
-  };
-
-  const renderCard = (pairNum: number, side: CardSide) => {
-    const { mode, image, text } =
-      pairsData[pairNum]?.[cardKey(side)] ?? createEmptyCard();
-
-    return (
-      <div className="flex min-w-0 flex-1 flex-col gap-1.5 rounded-lg border border-border/50 bg-muted/30 p-1.5">
-        <div className="flex shrink-0 flex-col items-start justify-between gap-1 2xl:flex-row 2xl:items-center">
-          <span className="ml-1 text-[9px] font-bold tracking-widest text-muted-foreground uppercase">
-            Carta {side}
-          </span>
-          <Select
-            items={MODES}
-            value={mode}
-            onValueChange={(value) =>
-              value && update(pairNum, side, () => ({ mode: value as CardMode }))
-            }
-          >
-            <SelectTrigger className="h-7 w-24 border-border bg-card p-2 py-0 text-[10px] hover:bg-card/80">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {Object.entries(MODES).map(([value, label]) => (
-                <SelectItem key={value} value={value} className="text-xs">
-                  {label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="flex flex-col gap-2">
-          {mode !== "text" && (
-            <ImagePicker
-              file={image.file}
-              url={image.url}
-              sourceUrl={image.sourceUrl}
-              ratio={CARD_RATIO}
-              maxWidth={CARD_OUTPUT_WIDTH}
-              onChange={(file, url, sourceUrl) =>
-                update(pairNum, side, (c) => ({
-                  image: setSlotImage(c.image, file, url, sourceUrl),
-                }))
-              }
-              onClear={() =>
-                update(pairNum, side, (c) => ({
-                  image: clearSlotImage(c.image),
-                }))
-              }
-              onError={onError}
-            />
-          )}
-
-          {mode === "both" && (
-            <Input
-              value={text}
-              onChange={(e) =>
-                update(pairNum, side, () => ({ text: e.target.value }))
-              }
-              placeholder="Texto corto"
-              className="h-8 w-full shrink-0 bg-card text-xs"
-            />
-          )}
-          {mode === "text" && (
-            <Textarea
-              value={text}
-              onChange={(e) =>
-                update(pairNum, side, () => ({ text: e.target.value }))
-              }
-              placeholder="Escribe el texto aquí"
-              style={cardAspect}
-              className="field-sizing-fixed min-h-0 w-full resize-none bg-card text-xs"
-            />
-          )}
-        </div>
-      </div>
-    );
+  const update = (pairNum: number, change: (image: ImageSlot) => ImageSlot) => {
+    setPairsData((prev) => ({
+      ...prev,
+      [pairNum]: pairWithImage(
+        change(prev[pairNum]?.cardA.image ?? emptyImageSlot()),
+      ),
+    }));
   };
 
   return (
-    <div className="h-full overflow-y-auto p-6 pb-12">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {pairNumbers.map((pairNum) => (
-          <Card
-            key={pairNum}
-            className="flex flex-col gap-3 border-border/80 bg-card/40 p-3 shadow-sm"
-          >
-            <div className="flex items-center gap-2 border-b border-border/50 pb-2 font-heading text-sm font-semibold text-foreground/90">
-              <span className="flex size-6 items-center justify-center rounded-full bg-(image:--brand-gradient) text-[11px] font-bold text-white">
-                {pairNum}
-              </span>
-              Par {pairNum}
-              <Copy className="ml-auto size-3.5 text-muted-foreground/60" />
-            </div>
-            <div className="flex gap-2">
-              {renderCard(pairNum, "A")}
-              {renderCard(pairNum, "B")}
-            </div>
-          </Card>
-        ))}
+    <div className="h-full overflow-y-auto p-4 sm:p-6">
+      <div className="mx-auto grid max-w-[1400px] grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-5">
+        {pairNumbers.map((pairNum) => {
+          const image = pairsData[pairNum]?.cardA.image;
+          return (
+            <Card
+              key={pairNum}
+              className="flex flex-col gap-2.5 border-border/80 bg-card/60 p-2.5 shadow-sm"
+            >
+              <div className="flex items-center gap-2 font-heading text-sm font-semibold text-foreground/90">
+                <span className="flex size-6 items-center justify-center rounded-full bg-(image:--brand-gradient) text-[11px] font-bold text-white">
+                  {pairNum}
+                </span>
+                Par {pairNum}
+                <span
+                  className="ml-auto inline-flex items-center gap-1 font-sans text-[11px] font-medium text-muted-foreground"
+                  title="La imagen se usa en las dos cartas del par"
+                >
+                  <Copy className="size-3" />2 cartas
+                </span>
+              </div>
+              <ImagePicker
+                file={image?.file}
+                url={image?.url}
+                sourceUrl={image?.sourceUrl}
+                ratio={CARD_RATIO}
+                maxWidth={CARD_OUTPUT_WIDTH}
+                onChange={(file, url, sourceUrl) =>
+                  update(pairNum, (current) =>
+                    setSlotImage(current, file, url, sourceUrl),
+                  )
+                }
+                onClear={() => update(pairNum, clearSlotImage)}
+                onError={onError}
+              />
+            </Card>
+          );
+        })}
       </div>
     </div>
   );

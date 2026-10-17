@@ -27,7 +27,7 @@ import { loadZipFile, saveAsZip } from "./persistence";
 import {
   MODE_TYPE,
   PAIRS,
-  TYPE_MODE,
+  pairWithImage,
   createEmptyPair,
   initialBoardOrder,
   isBoardOrder,
@@ -154,19 +154,14 @@ export function Editor() {
         return;
       }
 
-      const toContent = async (card: SessionCard): Promise<CardContent> => ({
-        mode: TYPE_MODE[card.type] ?? "text",
-        text: card.text,
-        image: await readImageSlot(zip, card.pictureFile),
-      });
+      const pictureOf = (card: SessionCard) =>
+        card.type !== 0 ? card.pictureFile : "";
 
       const loaded: PairsData = {};
       for (let i = 0; i < PAIRS; i++) {
-        const cell = data.cells[i];
-        loaded[i + 1] = {
-          cardA: await toContent(cell.cardA),
-          cardB: await toContent(cell.cardB),
-        };
+        const { cardA, cardB } = data.cells[i];
+        const path = pictureOf(cardA) || pictureOf(cardB);
+        loaded[i + 1] = pairWithImage(await readImageSlot(zip, path));
       }
       const order = isBoardOrder(data.answer)
         ? data.answer
