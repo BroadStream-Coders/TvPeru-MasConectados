@@ -1,36 +1,54 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Más Conectados
 
-## Getting Started
+Software de juegos para **Más Conectados**, programa de TV Perú. Hoy cubre un
+juego: **De Par en Par**, un juego de memoria de 10 pares (20 cartas).
 
-First, run the development server:
+## Cómo se usa
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+1. **Colector** (`/collector`): la producción llena los pares del día (imagen,
+   texto o ambos), ordena el tablero y descarga `DeParEnPar.zip`.
+2. **Juego** (`/game`, en desarrollo): carga ese ZIP y se juega en pantalla
+   durante el programa.
+
+No hay cuentas, base de datos ni servidor propio: todo corre en el navegador y
+los datos del día viajan en el ZIP.
+
+## Formato del ZIP
+
+```
+DeParEnPar.zip
+├── sessionData.json
+└── images/
+    └── P{n}_{A|B}.{png|jpg|webp}
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+`sessionData.json` trae `cells` (un elemento por par, con `cardA` y `cardB`:
+`type` 0 texto · 1 imagen · 2 ambos, `text` y `pictureFile`) y `answer`, el
+orden de las cartas en el tablero (`"{par}_{A|B}"`, par desde 0).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Stack
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Next.js 16 (App Router) + React 19 + TypeScript
+- Tailwind CSS 4 + shadcn/ui (estilo `base-nova`, Base UI) + lucide
+- JSZip para el paquete y react-easy-crop para el recorte de imágenes
+- pnpm · desplegado en Vercel desde la raíz del repositorio
 
-## Learn More
+## Comandos
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+pnpm install
+pnpm build
+pnpm lint
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Licencia
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Software propietario de **Esteban Abanto**, todos los derechos reservados. El
+repositorio es público solo por requisitos de despliegue; su publicación no
+otorga ningún derecho de uso, copia ni descarga. Ver [`LICENSE`](LICENSE).
 
-## Deploy on Vercel
+El nombre y la identidad visual de Más Conectados pertenecen a TV Perú.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Desarrollado por Esteban Abanto © 2026

@@ -2,6 +2,8 @@
   "name": "tvperu-masconectados",
   "version": "0.1.0",
   "private": true,
+  "license": "UNLICENSED",
+  "author": "Esteban Abanto",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

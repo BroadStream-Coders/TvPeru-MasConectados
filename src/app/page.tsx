@@ -122,8 +122,11 @@ export default function Home() {
         </section>
       </main>
 
-      <footer className="border-t border-border/70 py-6 text-center text-xs text-muted-foreground">
-        Más Conectados · TV Perú
+      <footer className="border-t border-border/70">
+        <div className="mx-auto flex w-full max-w-5xl justify-between gap-4 px-4 py-3 text-xs text-muted-foreground">
+          <p>Programa de TV Perú</p>
+          <p>© 2026 Esteban Abanto</p>
+        </div>
       </footer>
     </div>
   );
