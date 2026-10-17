@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { Editor } from "@/collector/Editor";
 
 export default function CollectorPage() {
   return (
@@ -18,6 +19,7 @@ export default function CollectorPage() {
         </Button>
         <h1 className="text-2xl font-semibold tracking-tight">Colector</h1>
       </div>
+      <Editor />
     </main>
   );
 }
