@@ -43,8 +43,8 @@ export function ImageCropperDialog({
 
   return (
     <Dialog open onOpenChange={(open) => !open && !busy && onCancel()}>
-      <DialogContent showCloseButton={false} className="max-w-xl p-0">
-        <DialogHeader className="border-b p-4">
+      <DialogContent showCloseButton={false} className="max-w-xl overflow-hidden bg-background p-0 shadow-2xl">
+        <DialogHeader className="border-b border-border bg-muted/20 p-4">
           <DialogTitle>Ajustar imagen</DialogTitle>
         </DialogHeader>
         <div className="relative h-[400px] w-full bg-black/90">
@@ -58,7 +58,7 @@ export function ImageCropperDialog({
             onCropComplete={(_, pixels) => setArea(pixels)}
           />
         </div>
-        <div className="space-y-4 p-4">
+        <div className="space-y-6 bg-muted/10 p-6">
           <div className="space-y-2">
             <div className="flex justify-between text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               <span>Zoom</span>

@@ -5,9 +5,11 @@ import { useRef, useState } from "react";
 import type { Area } from "react-easy-crop";
 import { Crop, Plus, Trash2 } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
 import { cropToFile } from "./crop-image";
 import { ImageCropperDialog } from "./ImageCropperDialog";
+
+const ACTION =
+  "absolute top-2 z-10 rounded bg-black/60 p-1.5 text-white opacity-0 transition-opacity outline-none group-hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring max-md:opacity-100";
 
 interface Pending {
   src: string;
@@ -95,7 +97,7 @@ export function ImagePicker({
   return (
     <>
       <div
-        className="group relative w-full cursor-pointer overflow-hidden rounded-lg border border-dashed border-border bg-background hover:border-primary/50 hover:bg-muted/40"
+        className="group relative w-full cursor-pointer overflow-hidden rounded-lg border border-dashed border-border bg-background transition-colors hover:border-primary/50 hover:bg-muted/40"
         style={{ aspectRatio: `${ratio.x} / ${ratio.y}` }}
         onClick={() => inputRef.current?.click()}
       >
@@ -106,38 +108,36 @@ export function ImagePicker({
               alt="Vista previa"
               fill
               unoptimized
-              className="object-contain p-1"
+              className="object-contain p-1 transition-transform duration-300 group-hover:scale-105"
             />
-            <div className="absolute left-2 top-2 z-10">
-              <Button
-                size="icon-xs"
-                variant="secondary"
-                aria-label="Recortar imagen"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  reCrop();
-                }}
-              >
-                <Crop />
-              </Button>
-            </div>
-            <div className="absolute right-2 top-2 z-10">
-              <Button
-                size="icon-xs"
-                variant="destructive"
-                aria-label="Quitar imagen"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onClear();
-                }}
-              >
-                <Trash2 />
-              </Button>
-            </div>
+            <button
+              type="button"
+              aria-label="Recortar imagen"
+              className={`left-2 hover:bg-black/80 ${ACTION}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                reCrop();
+              }}
+            >
+              <Crop className="size-4" />
+            </button>
+            <button
+              type="button"
+              aria-label="Quitar imagen"
+              className={`right-2 hover:bg-destructive ${ACTION}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onClear();
+              }}
+            >
+              <Trash2 className="size-4" />
+            </button>
           </>
         ) : (
-          <div className="flex h-full w-full flex-col items-center justify-center gap-1.5 text-muted-foreground group-hover:text-foreground">
-            <Plus className="size-5" />
+          <div className="flex h-full w-full flex-col items-center justify-center gap-1.5 text-muted-foreground transition-colors group-hover:text-foreground">
+            <span className="flex size-8 items-center justify-center rounded-lg bg-muted transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+              <Plus className="size-4" />
+            </span>
             <span className="text-xs font-medium">Subir imagen</span>
           </div>
         )}
