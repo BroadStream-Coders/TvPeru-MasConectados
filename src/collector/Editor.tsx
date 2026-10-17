@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
   Check,
+  Info,
   Layers,
   LayoutGrid,
   Loader2,
@@ -47,6 +48,11 @@ import { ValidationDialog } from "./ValidationDialog";
 
 const ZIP_NAME = "DeParEnPar.zip";
 const SESSION_JSON = "sessionData.json";
+
+interface Notice {
+  tone: "error" | "info";
+  message: string;
+}
 
 interface Snapshot {
   pairsData: PairsData;
@@ -92,7 +98,7 @@ export function Editor() {
   const [boardOrder, setBoardOrder] = useState(initial.boardOrder);
   const [saved, setSaved] = useState(initial);
   const [issues, setIssues] = useState<ValidationIssue[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<Notice | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -108,7 +114,7 @@ export function Editor() {
 
   const reportError = (message: string, cause?: unknown) => {
     console.error(message, cause);
-    setError(message);
+    setNotice({ tone: "error", message });
   };
 
   const save = async () => {
@@ -118,7 +124,7 @@ export function Editor() {
       const { data, files } = buildSession(pairsData, boardOrder);
       await saveAsZip(ZIP_NAME, data, files, SESSION_JSON);
       setSaved({ pairsData, boardOrder, savedAt: Date.now() });
-      setError(null);
+      setNotice(null);
     } catch (cause) {
       reportError("No se pudo generar el ZIP.", cause);
     } finally {
@@ -171,7 +177,7 @@ export function Editor() {
       setPairsData(loaded);
       setBoardOrder(order);
       setSaved({ pairsData: loaded, boardOrder: order, savedAt: null });
-      setError(null);
+      setNotice(null);
     } catch (cause) {
       reportError("No se pudo cargar el archivo.", cause);
     } finally {
@@ -258,18 +264,24 @@ export function Editor() {
         </div>
       </header>
 
-      {error && (
+      {notice && (
         <div className="shrink-0 border-b border-border bg-card px-3 py-2 sm:px-4">
-          <Alert variant="destructive">
-            <TriangleAlert />
-            <AlertTitle>Algo salió mal</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
+          <Alert variant={notice.tone === "error" ? "destructive" : "default"}>
+            {notice.tone === "error" ? (
+              <TriangleAlert />
+            ) : (
+              <Info className="text-primary" />
+            )}
+            <AlertTitle>
+              {notice.tone === "error" ? "Algo salió mal" : "Aviso"}
+            </AlertTitle>
+            <AlertDescription>{notice.message}</AlertDescription>
             <AlertAction>
               <Button
                 variant="ghost"
                 size="icon-xs"
                 aria-label="Cerrar aviso"
-                onClick={() => setError(null)}
+                onClick={() => setNotice(null)}
               >
                 <X />
               </Button>
@@ -289,6 +301,7 @@ export function Editor() {
                   pairsData={pairsData}
                   setPairsData={setPairsData}
                   onError={reportError}
+                  onInfo={(message) => setNotice({ tone: "info", message })}
                 />
               ),
             },

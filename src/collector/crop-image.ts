@@ -6,6 +6,40 @@ const EXT: Record<string, string> = {
   "image/webp": "webp",
 };
 
+export const ACCEPTED_IMAGES = Object.keys(EXT).join(",");
+
+export const baseNameOf = (name: string) =>
+  name.replace(/\.[^.]+$/, "") || "image";
+
+async function measure(src: string) {
+  const image = document.createElement("img");
+  image.src = src;
+  await image.decode();
+  return { width: image.naturalWidth, height: image.naturalHeight };
+}
+
+export async function prepareImage(picked: File, maxWidth: number) {
+  const original = new File([await picked.arrayBuffer()], picked.name, {
+    type: picked.type,
+  });
+  const sourceUrl = URL.createObjectURL(original);
+  try {
+    const { width, height } = await measure(sourceUrl);
+    if (width <= maxWidth) return { file: original, url: sourceUrl, sourceUrl };
+    const file = await cropToFile(
+      sourceUrl,
+      { x: 0, y: 0, width, height },
+      picked.type,
+      baseNameOf(picked.name),
+      maxWidth,
+    );
+    return { file, url: URL.createObjectURL(file), sourceUrl };
+  } catch (error) {
+    URL.revokeObjectURL(sourceUrl);
+    throw error;
+  }
+}
+
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();

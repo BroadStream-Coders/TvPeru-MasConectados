@@ -5,7 +5,12 @@ import { useRef, useState } from "react";
 import type { Area } from "react-easy-crop";
 import { Crop, Plus, Trash2 } from "lucide-react";
 
-import { cropToFile } from "./crop-image";
+import {
+  ACCEPTED_IMAGES,
+  baseNameOf,
+  cropToFile,
+  prepareImage,
+} from "./crop-image";
 import { ImageCropperDialog } from "./ImageCropperDialog";
 
 const ACTION =
@@ -30,15 +35,6 @@ interface ImagePickerProps {
 
 const RATIO_TOLERANCE = 0.03;
 
-const baseNameOf = (name: string) => name.replace(/\.[^.]+$/, "") || "image";
-
-async function measure(src: string) {
-  const image = document.createElement("img");
-  image.src = src;
-  await image.decode();
-  return { width: image.naturalWidth, height: image.naturalHeight };
-}
-
 export function ImagePicker({
   file,
   url,
@@ -62,28 +58,10 @@ export function ImagePicker({
     Math.abs(shape.ratio - target) / target > RATIO_TOLERANCE;
 
   const handleFile = async (picked: File) => {
-    let originalUrl = "";
     try {
-      const original = new File([await picked.arrayBuffer()], picked.name, {
-        type: picked.type,
-      });
-      originalUrl = URL.createObjectURL(original);
-      const { width, height } = await measure(originalUrl);
-      const stored =
-        width > maxWidth
-          ? await cropToFile(
-              originalUrl,
-              { x: 0, y: 0, width, height },
-              picked.type,
-              baseNameOf(picked.name),
-              maxWidth,
-            )
-          : original;
-      const storedUrl =
-        stored === original ? originalUrl : URL.createObjectURL(stored);
-      onChange(stored, storedUrl, originalUrl);
+      const image = await prepareImage(picked, maxWidth);
+      onChange(image.file, image.url, image.sourceUrl);
     } catch (error) {
-      if (originalUrl) URL.revokeObjectURL(originalUrl);
       onError("No se pudo leer la imagen elegida.", error);
     }
   };
@@ -191,7 +169,7 @@ export function ImagePicker({
         <input
           ref={inputRef}
           type="file"
-          accept="image/png,image/jpeg,image/webp"
+          accept={ACCEPTED_IMAGES}
           className="hidden"
           onClick={(e) => e.stopPropagation()}
           onChange={(e) => {
