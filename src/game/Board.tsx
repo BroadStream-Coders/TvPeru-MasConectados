@@ -26,6 +26,8 @@ import { FitText } from "./FitText";
 import { resolveSlot, type GameSession, type Slot } from "./session";
 import { playSound, stopAllSounds } from "./sounds";
 
+const BACK_NUMBER_LIFT = 8;
+
 const delay = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
 const isTyping = (target: EventTarget | null) =>
@@ -134,7 +136,8 @@ function CardBack({ index }: { index: number }) {
         style={{
           width: px(200),
           height: px(200),
-          transform: `translate(-50%, calc(-50% + ${px(5)}))`,
+          transform: `translate(-50%, calc(-50% - ${px(BACK_NUMBER_LIFT)}))`,
+          paddingRight: "0.08em",
           fontSize: px(90),
           letterSpacing: "-0.08em",
           lineHeight: "normal",
