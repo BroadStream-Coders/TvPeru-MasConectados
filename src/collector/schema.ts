@@ -1,7 +1,6 @@
 import { emptyImageSlot, hasImage, type ImageSlot } from "./slot";
 
 export type CardMode = "image" | "text" | "both";
-export type CardSide = "A" | "B";
 
 export interface CardContent {
   mode: CardMode;
@@ -38,31 +37,19 @@ export const CARD_RATIO = { x: 315, y: 196 };
 
 export const CARD_OUTPUT_WIDTH = CARD_RATIO.x * 2;
 
-export const cardAspect = {
-  aspectRatio: `${CARD_RATIO.x} / ${CARD_RATIO.y}`,
-};
-
 export const MODE_TYPE: Record<CardMode, number> = {
   text: 0,
   image: 1,
   both: 2,
 };
 
-export function createEmptyCard(): CardContent {
-  return { mode: "image", text: "", image: emptyImageSlot() };
-}
-
-export function createEmptyPair(): PairData {
-  return { cardA: createEmptyCard(), cardB: createEmptyCard() };
-}
-
 export function pairWithImage(image: ImageSlot): PairData {
   const card: CardContent = { mode: "image", text: "", image };
   return { cardA: card, cardB: { ...card } };
 }
 
-export function cardKey(side: CardSide): keyof PairData {
-  return side === "A" ? "cardA" : "cardB";
+export function createEmptyPair(): PairData {
+  return pairWithImage(emptyImageSlot());
 }
 
 export function initialBoardOrder(): string[] {

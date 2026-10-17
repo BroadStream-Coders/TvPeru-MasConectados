@@ -2,10 +2,11 @@
 
 import Image from "next/image";
 import { useState } from "react";
-import { ArrowRightLeft, ImageIcon, Shuffle } from "lucide-react";
+import { ArrowRightLeft, ImageOff, Shuffle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { cardAspect, cardKey, shuffle, type PairsData } from "./schema";
+import { BOARD, GRAPHICS, cardPosition, px } from "@/game/design";
+import { shuffle, type PairsData } from "./schema";
 
 interface Tab2Props {
   boardOrder: string[];
@@ -13,53 +14,16 @@ interface Tab2Props {
   pairsData: PairsData;
 }
 
-function CardPreview({
-  cardId,
-  pairsData,
-}: {
-  cardId: string;
-  pairsData: PairsData;
-}) {
-  const [pairIdx, side] = cardId.split("_");
-  const card = pairsData[Number(pairIdx) + 1]?.[cardKey(side as "A" | "B")];
-
-  if (!card) {
-    return (
-      <div className="flex h-full items-center justify-center rounded-md border border-dashed border-border/50 text-xs text-muted-foreground">
-        Vacío
-      </div>
-    );
-  }
-
+function Graphic({ src, className = "" }: { src: string; className?: string }) {
   return (
-    <div className="flex h-full w-full flex-col justify-center overflow-hidden rounded-md border border-border/50 bg-background">
-      {card.mode !== "text" && (
-        <div
-          className={`relative flex items-center justify-center bg-card ${card.mode === "both" ? "min-h-0 flex-1 border-b border-border/40" : "h-full w-full"}`}
-        >
-          {card.image.url ? (
-            <Image
-              src={card.image.url}
-              alt="Carta"
-              fill
-              unoptimized
-              className="object-cover"
-            />
-          ) : (
-            <ImageIcon className="size-6 opacity-30" />
-          )}
-        </div>
-      )}
-      {card.mode !== "image" && (
-        <div
-          className={`flex items-center justify-center bg-muted/20 p-2 text-center text-xs font-medium ${card.mode === "both" ? "min-h-10 shrink-0" : "h-full w-full"}`}
-        >
-          <span className="line-clamp-3 leading-snug break-all">
-            {card.text || "Sin texto"}
-          </span>
-        </div>
-      )}
-    </div>
+    <Image
+      src={src}
+      alt=""
+      fill
+      unoptimized
+      draggable={false}
+      className={`pointer-events-none ${className}`}
+    />
   );
 }
 
@@ -89,61 +53,90 @@ export function Tab2({ boardOrder, setBoardOrder, pairsData }: Tab2Props) {
   };
 
   return (
-    <div className="flex h-full flex-col gap-4 overflow-y-auto p-6">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
-        <div>
-          <h2 className="font-heading text-lg font-semibold">
+    <div className="flex h-full flex-col gap-3 p-4">
+      <div className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-2">
+        <div className="min-w-0 flex-1">
+          <h2 className="font-heading text-base font-semibold">
             Tablero de juego
           </h2>
-          <p className="text-sm text-muted-foreground">
-            Así se reparten las cartas en pantalla. Aleatoriza o elige dos
-            cartas para intercambiarlas.
+          <p className="truncate text-xs text-muted-foreground">
+            Así se reparten las cartas en pantalla. Elige dos cartas para
+            intercambiarlas.
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <Button variant="outline" size="sm" onClick={randomize}>
-            <Shuffle />
-            Aleatorizar
-          </Button>
-          <Button
-            variant={selected.length === 2 ? "default" : "secondary"}
-            size="sm"
-            onClick={swap}
-            disabled={selected.length !== 2}
-          >
-            <ArrowRightLeft />
-            Intercambiar {selected.length === 1 && "(falta 1)"}
-          </Button>
-        </div>
+        <Button variant="outline" size="sm" onClick={randomize}>
+          <Shuffle />
+          Aleatorizar
+        </Button>
+        <Button
+          variant={selected.length === 2 ? "default" : "secondary"}
+          size="sm"
+          onClick={swap}
+          disabled={selected.length !== 2}
+        >
+          <ArrowRightLeft />
+          Intercambiar {selected.length === 1 && "(falta 1)"}
+        </Button>
       </div>
 
-      <div className="flex flex-1 items-center justify-center pb-4">
-        <div className="grid w-full max-w-[950px] grid-cols-5 gap-3">
-          {boardOrder.map((cardId, index) => {
+      <div className="flex min-h-0 flex-1 items-center justify-center [container-type:size]">
+        <div
+          className="relative aspect-video overflow-hidden rounded-xl shadow-[0_18px_40px_-20px_rgb(0_0_0/0.35)] ring-1 ring-border [container-type:size]"
+          style={{ width: "min(100cqi, 100cqb * 16 / 9)" }}
+        >
+          <Graphic src={GRAPHICS.background} />
+          {boardOrder.map((cardId, i) => {
+            const { left, top } = cardPosition(i);
+            const pairNum = Number(cardId.split("_")[0]) + 1;
+            const url = pairsData[pairNum]?.cardA.image.url;
             const isSelected = selected.includes(cardId);
-            const [pairIdx, side] = cardId.split("_");
+
             return (
               <button
                 key={cardId}
                 type="button"
+                aria-label={`Carta ${i + 1}, par ${pairNum}`}
+                aria-pressed={isSelected}
                 onClick={() => toggle(cardId)}
-                className={`relative flex flex-col items-center gap-1.5 rounded-lg border-2 p-2 transition-all ${
+                className={`absolute cursor-pointer rounded-[1.6cqw] outline-none transition-transform duration-200 focus-visible:ring-[0.3cqw] focus-visible:ring-ring ${
                   isSelected
-                    ? "z-10 scale-105 border-primary bg-primary/5 shadow-lg shadow-primary/30"
-                    : "border-border/60 hover:border-primary/40 hover:bg-muted/50"
+                    ? "z-10 scale-[1.06] ring-[0.35cqw] ring-primary ring-offset-[0.2cqw]"
+                    : "hover:scale-[1.03]"
                 }`}
+                style={{
+                  left: px(left),
+                  top: px(top),
+                  width: px(BOARD.cell.width),
+                  height: px(BOARD.cell.height),
+                }}
               >
-                <div className="flex w-full items-center justify-between">
-                  <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[9px] font-bold text-muted-foreground">
-                    {index + 1}
-                  </span>
-                  <span className="text-[9px] font-bold tracking-wider text-foreground/50 uppercase">
-                    Par {Number(pairIdx) + 1} · {side}
-                  </span>
+                <Graphic src={GRAPHICS.front[i % 2]} />
+                <div
+                  className="absolute top-1/2 left-1/2 flex -translate-1/2 items-center justify-center bg-white"
+                  style={{
+                    width: px(BOARD.setter.width),
+                    height: px(BOARD.setter.height),
+                    maskImage: `url(${GRAPHICS.mask})`,
+                    maskSize: "100% 100%",
+                    WebkitMaskImage: `url(${GRAPHICS.mask})`,
+                    WebkitMaskSize: "100% 100%",
+                  }}
+                >
+                  {url ? (
+                    <Graphic src={url} className="object-contain" />
+                  ) : (
+                    <span className="flex flex-col items-center gap-[0.4cqw] text-[1.1cqw] font-medium text-muted-foreground">
+                      <ImageOff className="size-[2.2cqw]" />
+                      Sin imagen
+                    </span>
+                  )}
                 </div>
-                <div className="w-full" style={cardAspect}>
-                  <CardPreview cardId={cardId} pairsData={pairsData} />
-                </div>
+                <span className="absolute top-[0.6cqw] left-[0.6cqw] flex size-[2.6cqw] items-center justify-center rounded-full bg-black/55 font-heading text-[1.2cqw] font-bold text-white">
+                  {i + 1}
+                </span>
+                <span className="absolute right-[0.6cqw] bottom-[0.6cqw] rounded-full bg-white/90 px-[0.7cqw] py-[0.15cqw] font-heading text-[1cqw] font-semibold text-foreground/80">
+                  Par {pairNum}
+                </span>
               </button>
             );
           })}
