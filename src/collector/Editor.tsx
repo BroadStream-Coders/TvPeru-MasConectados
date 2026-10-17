@@ -5,7 +5,6 @@ import { useEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
   Check,
-  Grid2x2,
   Layers,
   LayoutGrid,
   Loader2,
@@ -21,6 +20,7 @@ import {
   AlertDescription,
   AlertTitle,
 } from "@/components/ui/alert";
+import { BrandMark } from "@/components/brand-mark";
 import { Button } from "@/components/ui/button";
 import { LevelTabs } from "./LevelTabs";
 import { loadZipFile, saveAsZip } from "./persistence";
@@ -185,8 +185,9 @@ export function Editor() {
   };
 
   return (
-    <div className="flex h-dvh flex-col">
-      <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border bg-card px-3 sm:px-4">
+    <div className="flex h-dvh flex-col bg-muted/50">
+      <header className="relative flex h-16 shrink-0 items-center gap-3 border-b border-border bg-card px-3 sm:px-4">
+        <div className="absolute inset-x-0 top-0 h-1 bg-(image:--brand-gradient)" />
         <Button
           variant="ghost"
           size="icon"
@@ -196,14 +197,20 @@ export function Editor() {
         >
           <ArrowLeft />
         </Button>
-        <div className="flex min-w-0 items-center gap-2.5">
-          <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-            <Grid2x2 className="size-4" />
+        <Link href="/" className="flex min-w-0 items-center gap-3">
+          <BrandMark className="size-10 shadow-sm ring-brand-orange/30" />
+          <span className="flex min-w-0 flex-col leading-tight">
+            <span className="truncate text-[11px] font-bold tracking-[0.14em] text-accent uppercase">
+              Más Conectados
+            </span>
+            <span className="truncate font-heading text-base font-semibold tracking-tight">
+              De Par en Par
+              <span className="ml-1.5 font-sans text-sm font-normal text-muted-foreground max-sm:hidden">
+                · Colector
+              </span>
+            </span>
           </span>
-          <span className="truncate font-heading text-base font-semibold tracking-tight">
-            De Par en Par
-          </span>
-        </div>
+        </Link>
 
         <div className="ml-auto flex items-center gap-2 sm:gap-3">
           {busy ? (

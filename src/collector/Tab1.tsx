@@ -144,9 +144,12 @@ export function Tab1({ pairsData, setPairsData, onError }: Tab1Props) {
             key={pairNum}
             className="flex flex-col gap-3 border-border/80 bg-card/40 p-3 shadow-sm"
           >
-            <div className="flex items-center gap-2 border-b border-border/50 pb-1.5 text-sm font-bold text-foreground/90">
-              <Copy className="size-4 text-primary" />
+            <div className="flex items-center gap-2 border-b border-border/50 pb-2 font-heading text-sm font-semibold text-foreground/90">
+              <span className="flex size-6 items-center justify-center rounded-full bg-(image:--brand-gradient) text-[11px] font-bold text-white">
+                {pairNum}
+              </span>
               Par {pairNum}
+              <Copy className="ml-auto size-3.5 text-muted-foreground/60" />
             </div>
             <div className="flex gap-2">
               {renderCard(pairNum, "A")}
