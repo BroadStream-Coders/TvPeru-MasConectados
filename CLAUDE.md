@@ -45,4 +45,4 @@ cualquier duda lee `node_modules/next/dist/docs/` antes de escribir código.
 - `images/P{n}_{A|B}.ext`, referenciadas por `pictureFile`.
 - `answer`: permutación de los ids `"{par0}_{A|B}"` (par 0-based).
 - Al cargar se acepta `sessionData.json` o `data.json`; solo 10 pares.
-- Carta: proporción 252x164 (constante única); imágenes recortadas siempre.
+- Carta: proporción 315x196 (el área enmascarada del frente en Unity) (constante única); imágenes recortadas siempre.

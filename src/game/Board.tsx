@@ -2,20 +2,16 @@
 
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
-import { X } from "lucide-react";
 
-import { BrandMark } from "@/components/brand-mark";
-import { CARD_RATIO, shuffle } from "@/collector/schema";
+import { shuffle } from "@/collector/schema";
+import { candara } from "@/fonts/candara";
+import { poppins } from "@/fonts/poppins";
+import { BOARD, GRAPHICS, cardPosition, px } from "./design";
+import { FitText } from "./FitText";
 import { resolveSlot, type GameSession, type Slot } from "./session";
 import { playSound, stopAllSounds } from "./sounds";
 
-const ERROR_BLINK_MS = 100;
-const ERROR_HOLD_MS = 500;
-
-const cardStyle = {
-  width: "15.5cqw",
-  aspectRatio: `${CARD_RATIO.x} / ${CARD_RATIO.y}`,
-};
+const ERROR_FLIP_MS = 300;
 
 const delay = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
@@ -23,52 +19,116 @@ const isTyping = (target: EventTarget | null) =>
   target instanceof HTMLElement &&
   /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName);
 
-function CardFace({
+function Graphic({ src, className = "" }: { src: string; className?: string }) {
+  return (
+    <Image
+      src={src}
+      alt=""
+      fill
+      unoptimized
+      draggable={false}
+      className={`pointer-events-none ${className}`}
+    />
+  );
+}
+
+function Picture({ src }: { src: string }) {
+  return src ? <Graphic src={src} className="object-contain" /> : null;
+}
+
+function CardFront({
   slot,
+  index,
   images,
 }: {
   slot: Slot | null;
+  index: number;
   images: Record<string, string>;
 }) {
   const card = slot?.card;
-  const picture = card?.pictureFile ? images[card.pictureFile] : "";
-  const showImage = card?.type !== 0 && picture;
-  const showText = card?.type !== 1;
+  const picture = card?.pictureFile ? (images[card.pictureFile] ?? "") : "";
+  const text = card?.text ?? "";
 
   return (
-    <div className="absolute inset-0 flex flex-col bg-white">
-      {showImage && (
-        <div className="relative min-h-0 flex-1">
-          <Image
-            src={picture}
-            alt=""
-            fill
-            unoptimized
-            draggable={false}
-            className="object-cover"
+    <div className="absolute inset-0">
+      <Graphic src={GRAPHICS.front[index % 2]} />
+      <div
+        className="absolute top-1/2 left-1/2 -translate-1/2 bg-white"
+        style={{
+          width: px(BOARD.setter.width),
+          height: px(BOARD.setter.height),
+          maskImage: `url(${GRAPHICS.mask})`,
+          maskSize: "100% 100%",
+          WebkitMaskImage: `url(${GRAPHICS.mask})`,
+          WebkitMaskSize: "100% 100%",
+        }}
+      >
+        {card?.type === 0 && (
+          <FitText
+            text={text}
+            min={12}
+            max={40}
+            className={candara.className}
+            style={{
+              color: "#3f9b15",
+              fontWeight: 700,
+              letterSpacing: "-0.07em",
+            }}
           />
-        </div>
-      )}
-      {showText && (
-        <div
-          className={`flex items-center justify-center px-[0.6cqw] text-center font-heading leading-tight font-semibold text-foreground ${
-            showImage
-              ? "h-[2.8cqw] shrink-0 text-[1.1cqw]"
-              : "flex-1 text-[1.6cqw]"
-          }`}
-        >
-          <span className="line-clamp-3">{card?.text}</span>
-        </div>
-      )}
+        )}
+        {card?.type === 1 && (
+          <div className="relative h-full w-full">
+            <Picture src={picture} />
+          </div>
+        )}
+        {card?.type === 2 && (
+          <>
+            <div
+              className="absolute inset-x-0 top-0"
+              style={{ height: px(BOARD.bothText) }}
+            >
+              <FitText
+                text={text}
+                min={12}
+                max={40}
+                className={poppins.className}
+                style={{
+                  color: "#194aba",
+                  fontWeight: 700,
+                  letterSpacing: "-0.07em",
+                }}
+              />
+            </div>
+            <div
+              className="absolute inset-x-0 bottom-0"
+              style={{ height: px(BOARD.bothPicture) }}
+            >
+              <Picture src={picture} />
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }
 
-function CardBack() {
+function CardBack({ index }: { index: number }) {
   return (
-    <div className="absolute inset-0 flex items-center justify-center bg-brand-teal">
-      <div className="absolute inset-[0.5cqw] rounded-[0.5cqw] border-[0.25cqw] border-white/70" />
-      <BrandMark className="size-[5.5cqw] ring-[0.25cqw]" />
+    <div className="absolute inset-0">
+      <Graphic src={GRAPHICS.back[index % 2]} />
+      <div
+        className={`absolute top-1/2 left-1/2 flex items-center justify-center text-white ${candara.className}`}
+        style={{
+          width: px(200),
+          height: px(200),
+          transform: `translate(-50%, calc(-50% + ${px(5)}))`,
+          fontSize: px(90),
+          letterSpacing: "-0.08em",
+          lineHeight: "normal",
+        }}
+      >
+        {index + 1}
+      </div>
     </div>
   );
 }
@@ -79,8 +139,6 @@ export function Board({ session }: { session: GameSession }) {
   const slots = order.map((entry) => resolveSlot(data, entry));
 
   const [faceUp, setFaceUp] = useState<boolean[]>(() => slots.map(() => false));
-  const [matched, setMatched] = useState<Set<number>>(() => new Set());
-  const [errors, setErrors] = useState<number[]>([]);
   const faceUpRef = useRef(faceUp);
   const selectionRef = useRef<number[]>([]);
   const lockedRef = useRef(false);
@@ -92,13 +150,6 @@ export function Board({ session }: { session: GameSession }) {
     indexes.forEach((i) => (next[i] = up));
     faceUpRef.current = next;
     setFaceUp(next);
-    if (!up) {
-      setMatched((prev) => {
-        const pairs = new Set(prev);
-        indexes.forEach((i) => pairs.delete(slots[i]?.pair ?? -1));
-        return pairs;
-      });
-    }
   };
 
   const clickCard = (i: number) => {
@@ -123,20 +174,13 @@ export function Board({ session }: { session: GameSession }) {
 
     if (pair !== undefined && pair === slots[second]?.pair) {
       playSound("correct");
-      setMatched((prev) => new Set(prev).add(pair));
       return;
     }
 
     lockedRef.current = true;
     try {
       playSound("incorrect");
-      setErrors(selection);
-      await delay(ERROR_BLINK_MS);
-      setErrors([]);
-      await delay(ERROR_BLINK_MS);
-      setErrors(selection);
-      await delay(ERROR_HOLD_MS);
-      setErrors([]);
+      await delay(ERROR_FLIP_MS);
       setCards(selection, false);
     } finally {
       lockedRef.current = false;
@@ -157,7 +201,6 @@ export function Board({ session }: { session: GameSession }) {
     const hidden = order.map(() => false);
     faceUpRef.current = hidden;
     setFaceUp(hidden);
-    setMatched(new Set());
     setOrder(shuffle(order));
   };
 
@@ -224,40 +267,31 @@ export function Board({ session }: { session: GameSession }) {
   }, []);
 
   return (
-    <div className="absolute inset-0 flex items-center justify-center bg-(image:--brand-gradient)">
-      <div className="grid grid-cols-5 gap-[1.6cqw]">
-        {slots.map((slot, i) => {
-          const up = faceUp[i];
-          const isMatched = up && slot !== null && matched.has(slot.pair);
-          const isError = errors.includes(i);
-
-          return (
-            <button
-              key={order[i]}
-              type="button"
-              style={cardStyle}
-              onPointerDown={(event) => {
-                if (event.button === 0) clickCard(i);
-              }}
-              className={`relative cursor-pointer overflow-hidden rounded-[0.8cqw] shadow-[0_0.6cqw_1.4cqw_rgb(0_0_0/0.25)] outline-none ${
-                isError
-                  ? "ring-[0.35cqw] ring-destructive"
-                  : isMatched
-                    ? "ring-[0.35cqw] ring-brand-teal"
-                    : ""
-              }`}
-            >
-              <CardFace slot={slot} images={images} />
-              {!up && <CardBack />}
-              {isError && (
-                <div className="absolute inset-0 flex items-center justify-center bg-destructive/35">
-                  <X className="size-[6cqw] stroke-[0.4cqw] text-white drop-shadow" />
-                </div>
-              )}
-            </button>
-          );
-        })}
-      </div>
+    <div className="absolute inset-0">
+      <Graphic src={GRAPHICS.background} />
+      {slots.map((slot, i) => {
+        const { left, top } = cardPosition(i);
+        return (
+          <button
+            key={order[i]}
+            type="button"
+            aria-label={`Carta ${i + 1}`}
+            onPointerDown={(event) => {
+              if (event.button === 0) clickCard(i);
+            }}
+            className="absolute cursor-pointer outline-none"
+            style={{
+              left: px(left),
+              top: px(top),
+              width: px(BOARD.cell.width),
+              height: px(BOARD.cell.height),
+            }}
+          >
+            <CardFront slot={slot} index={i} images={images} />
+            {!faceUp[i] && <CardBack index={i} />}
+          </button>
+        );
+      })}
     </div>
   );
 }

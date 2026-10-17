@@ -1,12 +1,8 @@
 import type { Metadata } from "next";
-import { Libre_Franklin, Poppins } from "next/font/google";
-import "./globals.css";
+import { Libre_Franklin } from "next/font/google";
 
-const poppins = Poppins({
-  variable: "--font-poppins",
-  subsets: ["latin"],
-  weight: ["500", "600", "700", "800"],
-});
+import { poppins } from "@/fonts/poppins";
+import "./globals.css";
 
 const libreFranklin = Libre_Franklin({
   variable: "--font-libre-franklin",

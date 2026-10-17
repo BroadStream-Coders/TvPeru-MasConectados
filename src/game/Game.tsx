@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Board } from "./Board";
 import { loadSession, releaseSession, type GameSession } from "./session";
 import { Shortcuts } from "./Shortcuts";
+import { preloadGraphics } from "./design";
 import { preloadSounds } from "./sounds";
 import { Stage, toggleFullscreen } from "./Stage";
 
@@ -39,7 +40,11 @@ export function Game() {
   const load = async (file: File) => {
     setLoading(true);
     try {
-      const [next] = await Promise.all([loadSession(file), preloadSounds()]);
+      const [next] = await Promise.all([
+        loadSession(file),
+        preloadSounds(),
+        preloadGraphics(),
+      ]);
       releaseSession(sessionRef.current);
       sessionRef.current = next;
       setSession(next);

@@ -34,7 +34,7 @@ export interface ValidationIssue {
 
 export const PAIRS = 10;
 
-export const CARD_RATIO = { x: 252, y: 164 };
+export const CARD_RATIO = { x: 315, y: 196 };
 
 export const CARD_OUTPUT_WIDTH = CARD_RATIO.x * 2;
 
