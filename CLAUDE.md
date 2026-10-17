@@ -29,6 +29,13 @@ cualquier duda lee `node_modules/next/dist/docs/` antes de escribir código.
 - Sin zustand ni estado global: `useState` local. Errores en un `Alert` de shadcn dentro de la página; sin toasts.
 - Lo mínimo que funcione; librerías probadas antes que código a mano.
 - Componentes shadcn: `pnpm dlx shadcn@latest add <componente>`. En base-nova el `Select` necesita `items` en la raíz para que `SelectValue` muestre la etiqueta.
+- Identidad: colores de marca en `globals.css` (`--brand-*`, `--brand-gradient`), Poppins en títulos, logo vía `src/components/brand-mark.tsx`.
+
+## Juego (`src/game/`)
+
+- Sale en vivo: nada se muestra sin estar precargado y **decodificado** (`image.decode()`); si falta una imagen, el paquete se rechaza.
+- Todo lo que se dibuja dentro del `Stage` (16:9) se mide en `cqw`/`cqh`, nunca en `px`/`rem`/`vw`, para que ventana y pantalla completa se vean idénticas.
+- El contrato del ZIP es el del colector: el juego reusa `isSessionData`, `isBoardOrder` y `readImageSlot`, no duplica tipos.
 
 ## Contrato del ZIP (no romper)
 

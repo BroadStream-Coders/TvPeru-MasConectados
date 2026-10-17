@@ -11,7 +11,34 @@ import {
 
 import { BrandMark } from "@/components/brand-mark";
 
-const steps: { icon: LucideIcon; title: string; text: string }[] = [
+const entries = [
+  {
+    href: "/collector",
+    icon: ClipboardList,
+    title: "Colector",
+    text: "Llena los pares del día, ordena el tablero y descarga el ZIP para el juego.",
+    cta: "Abrir colector",
+    tone: {
+      card: "hover:border-primary hover:shadow-[0_28px_56px_-26px_color-mix(in_oklch,var(--primary)_60%,transparent)]",
+      icon: "bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground",
+      cta: "text-primary",
+    },
+  },
+  {
+    href: "/game",
+    icon: Gamepad2,
+    title: "Juego",
+    text: "Carga el ZIP del colector y juega De Par en Par en pantalla completa.",
+    cta: "Abrir juego",
+    tone: {
+      card: "hover:border-accent hover:shadow-[0_28px_56px_-26px_color-mix(in_oklch,var(--accent)_60%,transparent)]",
+      icon: "bg-accent/10 text-accent group-hover:bg-accent group-hover:text-accent-foreground",
+      cta: "text-accent",
+    },
+  },
+];
+
+const steps:{ icon: LucideIcon; title: string; text: string }[] = [
   {
     icon: PencilLine,
     title: "Llena los pares",
@@ -56,42 +83,29 @@ export default function Home() {
 
       <main className="relative mx-auto -mt-16 w-full max-w-5xl flex-1 px-4 pb-16">
         <div className="grid gap-5 sm:grid-cols-2">
-          <Link
-            href="/collector"
-            className="group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-card p-7 shadow-[0_24px_48px_-28px_color-mix(in_oklch,var(--brand-orange)_55%,transparent)] transition-all hover:-translate-y-0.5 hover:border-primary hover:shadow-[0_28px_56px_-26px_color-mix(in_oklch,var(--primary)_60%,transparent)]"
-          >
-            <span className="mb-5 flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
-              <ClipboardList className="size-7" />
-            </span>
-            <h2 className="font-heading text-2xl font-semibold">Colector</h2>
-            <p className="mt-2 leading-relaxed text-muted-foreground">
-              Llena los pares del día, ordena el tablero y descarga el ZIP para
-              el juego.
-            </p>
-            <span className="mt-6 inline-flex items-center gap-1.5 font-semibold text-primary">
-              Abrir colector
-              <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
-            </span>
-          </Link>
-
-          <div
-            aria-disabled="true"
-            className="relative flex flex-col overflow-hidden rounded-2xl border border-dashed border-border bg-card/70 p-7"
-          >
-            <span className="absolute top-6 right-6 rounded-full bg-accent/10 px-3 py-1 text-xs font-bold tracking-wide text-accent">
-              Muy pronto
-            </span>
-            <span className="mb-5 flex size-14 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
-              <Gamepad2 className="size-7" />
-            </span>
-            <h2 className="font-heading text-2xl font-semibold text-foreground/70">
-              Juego
-            </h2>
-            <p className="mt-2 leading-relaxed text-muted-foreground">
-              Carga el ZIP del colector y juega De Par en Par en pantalla
-              completa.
-            </p>
-          </div>
+          {entries.map(({ href, icon: Icon, title, text, cta, tone }) => (
+            <Link
+              key={href}
+              href={href}
+              className={`group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-card p-7 shadow-[0_24px_48px_-28px_color-mix(in_oklch,var(--brand-orange)_55%,transparent)] transition-all hover:-translate-y-0.5 ${tone.card}`}
+            >
+              <span
+                className={`mb-5 flex size-14 items-center justify-center rounded-2xl transition-colors ${tone.icon}`}
+              >
+                <Icon className="size-7" />
+              </span>
+              <h2 className="font-heading text-2xl font-semibold">{title}</h2>
+              <p className="mt-2 leading-relaxed text-muted-foreground">
+                {text}
+              </p>
+              <span
+                className={`mt-6 inline-flex items-center gap-1.5 font-semibold ${tone.cta}`}
+              >
+                {cta}
+                <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
+              </span>
+            </Link>
+          ))}
         </div>
 
         <section className="mt-14">
