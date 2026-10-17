@@ -35,6 +35,7 @@ cualquier duda lee `node_modules/next/dist/docs/` antes de escribir código.
 
 - Sale en vivo: nada se muestra sin estar precargado y **decodificado** (`image.decode()`); si falta una imagen, el paquete se rechaza.
 - Todo lo que se dibuja dentro del `Stage` (16:9) se mide en `cqw`/`cqh`, nunca en `px`/`rem`/`vw`, para que ventana y pantalla completa se vean idénticas.
+- Animaciones con la Web Animations API nativa (`element.animate()`, en `src/game/animations.ts`), sin librerías. El volteo cambia de cara a 90°, así ninguna animación deja ver la cara de una carta oculta.
 - El contrato del ZIP es el del colector: el juego reusa `isSessionData`, `isBoardOrder` y `readImageSlot`, no duplica tipos.
 
 ## Contrato del ZIP (no romper)

@@ -1,17 +1,30 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 
 import { shuffle } from "@/collector/schema";
 import { candara } from "@/fonts/candara";
 import { poppins } from "@/fonts/poppins";
+import {
+  CELEBRATION_STEP_MS,
+  DIAGONAL,
+  WAVE_STEP_MS,
+  confetti,
+  dealIn,
+  dealOut,
+  flipHide,
+  flipShow,
+  glint,
+  shake,
+  sparkle,
+  wiggle,
+} from "./animations";
 import { BOARD, GRAPHICS, cardPosition, px } from "./design";
 import { FitText } from "./FitText";
 import { resolveSlot, type GameSession, type Slot } from "./session";
 import { playSound, stopAllSounds } from "./sounds";
-
-const ERROR_FLIP_MS = 300;
 
 const delay = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
@@ -141,19 +154,77 @@ export function Board({ session }: { session: GameSession }) {
   const [faceUp, setFaceUp] = useState<boolean[]>(() => slots.map(() => false));
   const faceUpRef = useRef(faceUp);
   const selectionRef = useRef<number[]>([]);
+  const matchedRef = useRef(new Set<number>());
+  const flightRef = useRef(new Map<number, Promise<void>>());
   const lockedRef = useRef(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const slotRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
 
-  const allIndexes = () => slots.map((_, i) => i);
+  const slotEl = (i: number) => slotRefs.current[i];
+  const cardEl = (i: number) => cardRefs.current[i];
 
   const setCards = (indexes: number[], up: boolean) => {
     const next = [...faceUpRef.current];
-    indexes.forEach((i) => (next[i] = up));
+    indexes.forEach((i) => {
+      next[i] = up;
+      if (!up) matchedRef.current.delete(slots[i]?.pair ?? -1);
+    });
     faceUpRef.current = next;
-    setFaceUp(next);
+    flushSync(() => setFaceUp(next));
+  };
+
+  const flip = (i: number, up: boolean) => {
+    const inFlight = flightRef.current.get(i);
+    if (inFlight) return inFlight;
+    if (faceUpRef.current[i] === up) return Promise.resolve();
+    const el = cardEl(i);
+    const run = (async () => {
+      try {
+        if (el) await flipHide(el);
+        setCards([i], up);
+        if (el) await flipShow(el);
+      } finally {
+        flightRef.current.delete(i);
+      }
+    })();
+    flightRef.current.set(i, run);
+    return run;
+  };
+
+  const settle = () =>
+    Promise.all(slots.map((_, i) => flightRef.current.get(i)));
+
+  const withLock = async (job: () => Promise<void>) => {
+    if (lockedRef.current) return;
+    lockedRef.current = true;
+    try {
+      await job();
+    } finally {
+      lockedRef.current = false;
+    }
+  };
+
+  const wave = (job: (i: number) => Promise<void>, step = WAVE_STEP_MS) =>
+    Promise.all(DIAGONAL.map((i, n) => delay(n * step).then(() => job(i))));
+
+  const onSlot = (i: number, run: (el: HTMLElement) => Promise<void>) => {
+    const el = slotEl(i);
+    return el ? run(el) : Promise.resolve();
+  };
+
+  const celebrate = async () => {
+    const root = rootRef.current;
+    await Promise.all([
+      root ? confetti(root) : Promise.resolve(),
+      ...DIAGONAL.map((i, n) =>
+        onSlot(i, (el) => wiggle(el, n * CELEBRATION_STEP_MS)),
+      ),
+    ]);
   };
 
   const clickCard = (i: number) => {
-    if (lockedRef.current) return;
+    if (lockedRef.current || flightRef.current.has(i)) return;
     const up = !faceUpRef.current[i];
     const selection = selectionRef.current;
     if (up) {
@@ -161,48 +232,77 @@ export function Board({ session }: { session: GameSession }) {
     } else {
       selectionRef.current = selection.filter((slot) => slot !== i);
     }
-    setCards([i], up);
+    void flip(i, up);
   };
 
   const validate = async () => {
     const selection = selectionRef.current;
     if (lockedRef.current || selection.length < 2) return;
     selectionRef.current = [];
+    await Promise.all(selection.map((i) => flightRef.current.get(i)));
 
     const [first, second] = selection;
     const pair = slots[first]?.pair;
 
     if (pair !== undefined && pair === slots[second]?.pair) {
       playSound("correct");
+      matchedRef.current.add(pair);
+      await Promise.all(
+        selection.map((i) =>
+          onSlot(i, (el) =>
+            Promise.all([wiggle(el), glint(el), sparkle(el)]).then(
+              () => undefined,
+            ),
+          ),
+        ),
+      );
+      if (matchedRef.current.size === data.cells.length) await celebrate();
       return;
     }
 
-    lockedRef.current = true;
-    try {
+    await withLock(async () => {
       playSound("incorrect");
-      await delay(ERROR_FLIP_MS);
-      setCards(selection, false);
-    } finally {
-      lockedRef.current = false;
-    }
+      await Promise.all(selection.map((i) => onSlot(i, shake)));
+      await Promise.all(selection.map((i) => flip(i, false)));
+    });
   };
 
-  const flipAll = (up: boolean) => {
-    if (lockedRef.current) return;
-    selectionRef.current = [];
-    setCards(allIndexes(), up);
-  };
+  const flipAll = (up: boolean) =>
+    withLock(async () => {
+      selectionRef.current = [];
+      await settle();
+      await wave((i) => flip(i, up));
+    });
 
   const toggleAll = () => flipAll(!faceUpRef.current.some(Boolean));
 
-  const reshuffle = () => {
-    if (lockedRef.current) return;
-    selectionRef.current = [];
-    const hidden = order.map(() => false);
-    faceUpRef.current = hidden;
-    setFaceUp(hidden);
-    setOrder(shuffle(order));
-  };
+  const reshuffle = () =>
+    withLock(async () => {
+      selectionRef.current = [];
+      matchedRef.current = new Set();
+      await settle();
+      await wave((i) => onSlot(i, (el) => dealOut(el, 0)), 15);
+      const hidden = order.map(() => false);
+      faceUpRef.current = hidden;
+      flushSync(() => {
+        setFaceUp(hidden);
+        setOrder(shuffle(order));
+      });
+      await Promise.all(
+        DIAGONAL.map((i, n) =>
+          onSlot(i, (el) => dealIn(el, n * WAVE_STEP_MS)),
+        ),
+      );
+    });
+
+  const revealAll = () =>
+    withLock(async () => {
+      selectionRef.current = [];
+      await settle();
+      await wave((i) => flip(i, true));
+      playSound("correct");
+      await celebrate();
+    });
 
   const clearSelection = () => {
     selectionRef.current = [];
@@ -210,16 +310,23 @@ export function Board({ session }: { session: GameSession }) {
 
   const actions = {
     KeyV: () => void validate(),
-    KeyF: () => flipAll(true),
-    KeyB: () => flipAll(false),
+    KeyF: () => void flipAll(true),
+    KeyB: () => void flipAll(false),
     KeyC: clearSelection,
-    KeyA: reshuffle,
+    KeyA: () => void reshuffle(),
   };
 
-  const latestRef = useRef({ actions, validate, toggleAll });
+  const latestRef = useRef({ actions, validate, toggleAll, revealAll });
   useEffect(() => {
-    latestRef.current = { actions, validate, toggleAll };
+    latestRef.current = { actions, validate, toggleAll, revealAll };
   });
+
+  useLayoutEffect(() => {
+    DIAGONAL.forEach((i, n) => {
+      const el = slotRefs.current[i];
+      if (el) void dealIn(el, n * WAVE_STEP_MS);
+    });
+  }, []);
 
   useEffect(() => {
     let shiftArmed = false;
@@ -232,6 +339,11 @@ export function Board({ session }: { session: GameSession }) {
         !event.metaKey;
       if (isTyping(event.target)) return;
       if (event.repeat || event.ctrlKey || event.metaKey || event.altKey) return;
+      if (event.shiftKey && event.code === "KeyM") {
+        event.preventDefault();
+        void latestRef.current.revealAll();
+        return;
+      }
       const { actions } = latestRef.current;
       const action = actions[event.code as keyof typeof actions];
       if (!action) return;
@@ -249,7 +361,7 @@ export function Board({ session }: { session: GameSession }) {
     const onPointerDown = (event: PointerEvent) => {
       if (event.button === 1) {
         event.preventDefault();
-        latestRef.current.toggleAll();
+        void latestRef.current.toggleAll();
       } else if (event.button === 2) {
         event.preventDefault();
         void latestRef.current.validate();
@@ -267,29 +379,44 @@ export function Board({ session }: { session: GameSession }) {
   }, []);
 
   return (
-    <div className="absolute inset-0">
+    <div ref={rootRef} className="absolute inset-0 overflow-hidden">
       <Graphic src={GRAPHICS.background} />
       {slots.map((slot, i) => {
         const { left, top } = cardPosition(i);
         return (
-          <button
-            key={order[i]}
-            type="button"
-            aria-label={`Carta ${i + 1}`}
-            onPointerDown={(event) => {
-              if (event.button === 0) clickCard(i);
+          <div
+            key={i}
+            ref={(el) => {
+              slotRefs.current[i] = el;
             }}
-            className="absolute cursor-pointer outline-none"
+            className="absolute"
             style={{
               left: px(left),
               top: px(top),
               width: px(BOARD.cell.width),
               height: px(BOARD.cell.height),
+              perspective: px(1600),
             }}
           >
-            <CardFront slot={slot} index={i} images={images} />
-            {!faceUp[i] && <CardBack index={i} />}
-          </button>
+            <button
+              type="button"
+              aria-label={`Carta ${i + 1}`}
+              onPointerDown={(event) => {
+                if (event.button === 0) clickCard(i);
+              }}
+              className="absolute inset-0 cursor-pointer outline-none"
+            >
+              <div
+                ref={(el) => {
+                  cardRefs.current[i] = el;
+                }}
+                className="absolute inset-0"
+              >
+                <CardFront slot={slot} index={i} images={images} />
+                {!faceUp[i] && <CardBack index={i} />}
+              </div>
+            </button>
+          </div>
         );
       })}
     </div>
