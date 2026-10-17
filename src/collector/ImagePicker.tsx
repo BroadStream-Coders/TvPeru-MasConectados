@@ -13,7 +13,6 @@ const ACTION =
 
 interface Pending {
   src: string;
-  owned: boolean;
   type: string;
   baseName: string;
 }
@@ -29,7 +28,16 @@ interface ImagePickerProps {
   onError: (message: string, cause: unknown) => void;
 }
 
+const RATIO_TOLERANCE = 0.03;
+
 const baseNameOf = (name: string) => name.replace(/\.[^.]+$/, "") || "image";
+
+async function measure(src: string) {
+  const image = document.createElement("img");
+  image.src = src;
+  await image.decode();
+  return { width: image.naturalWidth, height: image.naturalHeight };
+}
 
 export function ImagePicker({
   file,
@@ -43,19 +51,39 @@ export function ImagePicker({
 }: ImagePickerProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [pending, setPending] = useState<Pending | null>(null);
+  const [shape, setShape] = useState<{ url: string; ratio: number } | null>(
+    null,
+  );
+
+  const target = ratio.x / ratio.y;
+  const misfit =
+    shape !== null &&
+    shape.url === url &&
+    Math.abs(shape.ratio - target) / target > RATIO_TOLERANCE;
 
   const handleFile = async (picked: File) => {
+    let originalUrl = "";
     try {
-      const blob = new Blob([await picked.arrayBuffer()], {
+      const original = new File([await picked.arrayBuffer()], picked.name, {
         type: picked.type,
       });
-      setPending({
-        src: URL.createObjectURL(blob),
-        owned: true,
-        type: picked.type,
-        baseName: baseNameOf(picked.name),
-      });
+      originalUrl = URL.createObjectURL(original);
+      const { width, height } = await measure(originalUrl);
+      const stored =
+        width > maxWidth
+          ? await cropToFile(
+              originalUrl,
+              { x: 0, y: 0, width, height },
+              picked.type,
+              baseNameOf(picked.name),
+              maxWidth,
+            )
+          : original;
+      const storedUrl =
+        stored === original ? originalUrl : URL.createObjectURL(stored);
+      onChange(stored, storedUrl, originalUrl);
     } catch (error) {
+      if (originalUrl) URL.revokeObjectURL(originalUrl);
       onError("No se pudo leer la imagen elegida.", error);
     }
   };
@@ -65,14 +93,12 @@ export function ImagePicker({
     if (!src) return;
     setPending({
       src,
-      owned: false,
       type: file?.type ?? "image/jpeg",
       baseName: baseNameOf(file?.name ?? "image"),
     });
   };
 
   const close = () => {
-    if (pending?.owned) URL.revokeObjectURL(pending.src);
     setPending(null);
   };
 
@@ -109,11 +135,32 @@ export function ImagePicker({
               fill
               unoptimized
               className="object-contain p-1 transition-transform duration-300 group-hover:scale-105"
+              onLoad={(e) =>
+                setShape({
+                  url,
+                  ratio:
+                    e.currentTarget.naturalWidth /
+                    e.currentTarget.naturalHeight,
+                })
+              }
             />
             <button
               type="button"
-              aria-label="Recortar imagen"
-              className={`left-2 hover:bg-black/80 ${ACTION}`}
+              aria-label={
+                misfit
+                  ? "Recortar imagen: no calza con la carta"
+                  : "Recortar imagen"
+              }
+              title={
+                misfit
+                  ? "La imagen no tiene la forma de la carta. Recórtala para que llene el espacio."
+                  : "Recortar imagen"
+              }
+              className={`left-2 ${ACTION} ${
+                misfit
+                  ? "bg-accent opacity-100 shadow-[0_0_0_3px_color-mix(in_oklch,var(--accent)_35%,transparent)] hover:bg-accent/85"
+                  : "hover:bg-black/80"
+              }`}
               onClick={(e) => {
                 e.stopPropagation();
                 reCrop();
