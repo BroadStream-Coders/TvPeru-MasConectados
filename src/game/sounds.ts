@@ -23,6 +23,13 @@ export function playSound(id: SoundId) {
   void audio.play().catch(() => {});
 }
 
+export function stopAllSounds() {
+  for (const audio of cache.values()) {
+    audio.pause();
+    audio.currentTime = 0;
+  }
+}
+
 export function preloadSounds(): Promise<void[]> {
   return Promise.all(
     (Object.keys(SOURCES) as SoundId[]).map((id) => {

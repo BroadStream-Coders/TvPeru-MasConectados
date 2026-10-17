@@ -5,9 +5,9 @@ import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 
 import { BrandMark } from "@/components/brand-mark";
-import { CARD_RATIO } from "@/collector/schema";
+import { CARD_RATIO, shuffle } from "@/collector/schema";
 import { resolveSlot, type GameSession, type Slot } from "./session";
-import { playSound } from "./sounds";
+import { playSound, stopAllSounds } from "./sounds";
 
 const ERROR_BLINK_MS = 100;
 const ERROR_HOLD_MS = 500;
@@ -75,7 +75,8 @@ function CardBack() {
 
 export function Board({ session }: { session: GameSession }) {
   const { data, images } = session;
-  const slots = data.answer.map((entry) => resolveSlot(data, entry));
+  const [order, setOrder] = useState(data.answer);
+  const slots = order.map((entry) => resolveSlot(data, entry));
 
   const [faceUp, setFaceUp] = useState<boolean[]>(() => slots.map(() => false));
   const [matched, setMatched] = useState<Set<number>>(() => new Set());
@@ -83,6 +84,8 @@ export function Board({ session }: { session: GameSession }) {
   const faceUpRef = useRef(faceUp);
   const selectionRef = useRef<number[]>([]);
   const lockedRef = useRef(false);
+
+  const allIndexes = () => slots.map((_, i) => i);
 
   const setCards = (indexes: number[], up: boolean) => {
     const next = [...faceUpRef.current];
@@ -140,28 +143,82 @@ export function Board({ session }: { session: GameSession }) {
     }
   };
 
-  const validateRef = useRef(validate);
+  const flipAll = (up: boolean) => {
+    if (lockedRef.current) return;
+    selectionRef.current = [];
+    setCards(allIndexes(), up);
+  };
+
+  const toggleAll = () => flipAll(!faceUpRef.current.some(Boolean));
+
+  const reshuffle = () => {
+    if (lockedRef.current) return;
+    selectionRef.current = [];
+    const hidden = order.map(() => false);
+    faceUpRef.current = hidden;
+    setFaceUp(hidden);
+    setMatched(new Set());
+    setOrder(shuffle(order));
+  };
+
+  const clearSelection = () => {
+    selectionRef.current = [];
+  };
+
+  const actions = {
+    KeyV: () => void validate(),
+    KeyF: () => flipAll(true),
+    KeyB: () => flipAll(false),
+    KeyC: clearSelection,
+    KeyA: reshuffle,
+  };
+
+  const latestRef = useRef({ actions, validate, toggleAll });
   useEffect(() => {
-    validateRef.current = validate;
+    latestRef.current = { actions, validate, toggleAll };
   });
 
   useEffect(() => {
+    let shiftArmed = false;
+
     const onKeyDown = (event: KeyboardEvent) => {
+      shiftArmed =
+        (event.code === "ShiftLeft" || event.code === "ShiftRight") &&
+        !event.ctrlKey &&
+        !event.altKey &&
+        !event.metaKey;
       if (isTyping(event.target)) return;
       if (event.repeat || event.ctrlKey || event.metaKey || event.altKey) return;
-      if (event.code !== "KeyV") return;
+      const { actions } = latestRef.current;
+      const action = actions[event.code as keyof typeof actions];
+      if (!action) return;
       event.preventDefault();
-      void validateRef.current();
+      action();
     };
+
+    const onKeyUp = (event: KeyboardEvent) => {
+      const isShift = event.code === "ShiftLeft" || event.code === "ShiftRight";
+      if (!isShift || !shiftArmed) return;
+      shiftArmed = false;
+      if (!isTyping(event.target)) stopAllSounds();
+    };
+
     const onPointerDown = (event: PointerEvent) => {
-      if (event.button !== 2) return;
-      event.preventDefault();
-      void validateRef.current();
+      if (event.button === 1) {
+        event.preventDefault();
+        latestRef.current.toggleAll();
+      } else if (event.button === 2) {
+        event.preventDefault();
+        void latestRef.current.validate();
+      }
     };
+
     window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("keyup", onKeyUp);
     window.addEventListener("pointerdown", onPointerDown);
     return () => {
       window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("keyup", onKeyUp);
       window.removeEventListener("pointerdown", onPointerDown);
     };
   }, []);
@@ -176,7 +233,7 @@ export function Board({ session }: { session: GameSession }) {
 
           return (
             <button
-              key={data.answer[i]}
+              key={order[i]}
               type="button"
               style={cardStyle}
               onPointerDown={(event) => {

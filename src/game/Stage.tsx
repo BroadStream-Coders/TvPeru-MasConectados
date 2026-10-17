@@ -9,11 +9,25 @@ interface StageProps {
 
 export function Stage({ children, containerRef }: StageProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [pointerVisible, setPointerVisible] = useState(true);
 
   useEffect(() => {
     const onChange = () => setIsFullscreen(!!document.fullscreenElement);
     document.addEventListener("fullscreenchange", onChange);
     return () => document.removeEventListener("fullscreenchange", onChange);
+  }, []);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target && /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName)) return;
+      if (event.repeat || event.ctrlKey || event.metaKey || event.altKey) return;
+      if (event.code !== "KeyP") return;
+      event.preventDefault();
+      setPointerVisible((visible) => !visible);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
   return (
@@ -23,7 +37,7 @@ export function Stage({ children, containerRef }: StageProps) {
       onContextMenu={(event) => event.preventDefault()}
       className={`relative flex touch-none items-center justify-center overflow-hidden bg-black outline-none select-none [container-type:size] ${
         isFullscreen ? "h-screen w-screen" : "min-h-0 w-full flex-1"
-      }`}
+      } ${isFullscreen && !pointerVisible ? "cursor-none [&_*]:cursor-none" : ""}`}
     >
       <div
         className="relative aspect-video overflow-hidden [container-type:size]"

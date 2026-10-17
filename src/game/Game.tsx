@@ -22,6 +22,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Board } from "./Board";
 import { loadSession, releaseSession, type GameSession } from "./session";
+import { Shortcuts } from "./Shortcuts";
 import { preloadSounds } from "./sounds";
 import { Stage, toggleFullscreen } from "./Stage";
 
@@ -99,6 +100,7 @@ export function Game() {
               </span>
             )
           )}
+          <Shortcuts />
           <Button
             variant="outline"
             className="h-9 gap-1.5"
