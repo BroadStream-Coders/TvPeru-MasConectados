@@ -10,6 +10,7 @@ import { readImageSlot } from "@/collector/slot";
 
 export interface GameSession {
   name: string;
+  loadedAt: number;
   data: SessionData;
   images: Record<string, string>;
 }
@@ -79,5 +80,5 @@ export async function loadSession(file: File): Promise<GameSession> {
     throw error;
   }
 
-  return { name: file.name, data, images };
+  return { name: file.name, loadedAt: Date.now(), data, images };
 }

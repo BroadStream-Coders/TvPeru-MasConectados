@@ -22,6 +22,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Board } from "./Board";
 import { loadSession, releaseSession, type GameSession } from "./session";
+import { preloadSounds } from "./sounds";
 import { Stage, toggleFullscreen } from "./Stage";
 
 export function Game() {
@@ -37,7 +38,7 @@ export function Game() {
   const load = async (file: File) => {
     setLoading(true);
     try {
-      const next = await loadSession(file);
+      const [next] = await Promise.all([loadSession(file), preloadSounds()]);
       releaseSession(sessionRef.current);
       sessionRef.current = next;
       setSession(next);
@@ -151,7 +152,7 @@ export function Game() {
 
       <Stage containerRef={stageRef}>
         {session ? (
-          <Board session={session} />
+          <Board key={session.loadedAt} session={session} />
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-[2cqh] bg-(image:--brand-gradient) text-center text-white">
             <BrandMark className="size-[22cqh] shadow-[0_2cqh_4cqh_-1cqh_rgb(0_0_0/0.45)]" />
